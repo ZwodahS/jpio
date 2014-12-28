@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Copyright (C) 2014- ZwodahS
+# zwodahs.me
+# Twitter : @ZwodahS
+
+import sys
+import json
+import getopt
+
+C_S_LIST = 1                # selector list
+C_S_GENERIC = 2                # selector dict
+
+
+def print_help():
+    print("jpio [options] <query>")
+    print("    options:")
+    print()
+    print("    -f --infile          : read from file instead of stdin")
+    print("    -o --outfile         : output to file instead of stdout")
+    print("    -s --splitlist       : split the list content each to their own line")
+
+
+#################### Exception ####################
+class ParserException(Exception):
+    def __init__(self, query_string, index, message):
+        self.query_string = query_string
+        self.index = index
+        self.message = message
+
+    def __str__(self):
+        line = []
+        line.append("   " + self.query_string)
+        line.append("   " + "".join(([' '] * self.index) + ['^']))
+        line.append("   " + self.message)
+        return "\n".join(line)
+
+
+class RuntimeException(Exception):
+    def __init__(self, query, current_state, message):
+        self.query = query
+        self.current_state = current_state
+        self.message = message
+
+    def __str__(self):
+        line = []
+        line.append("    current query {0}".format(self.query))
+        line.append("    current state {0}".format(self.current_state))
+        line.append(self.message)
+        return "\n".join(line)
+
+
+#################### Parse query ####################
+def parse_string(qs, curr, end):
+    string = []
+    while curr < len(qs) and qs[curr] not in end:
+        if qs[curr] == '\\' :
+            if len(qs) != curr + 1:
+                string += qs[curr+1]
+                curr+=2
+            else:
+                raise ParserException(query_string=qs, index=curr+1, message="Unexpected end of selector")
+        else:
+            string += qs[curr]
+            curr+=1
+
+    return { "r" : "".join(string), "i" : curr }
+
+
+def parse_selector_list(qs, curr):
+    if qs[curr] != "[":
+        raise ParserException(query_string=qs, index=curr, message="Not a list selector")
+
+    if curr+1 >= len(qs) :
+        raise ParserException(query_string=qs, index=curr+1, message="Unexpected end of query")
+
+    select = None
+    if qs[curr+1] == "*" :
+        select="*"
+        curr = curr + 2
+
+    else:
+        result = parse_string(qs, curr+1, end=["]"])
+        fail = False
+        curr = result["i"]
+        try:
+            select = int(result["r"])
+        except ValueError:
+            fail = True
+
+        if fail:
+            if ":" in result["r"]:
+                select = result["r"].split(":")
+                if len(select) != 2:
+                    raise ParserException(query_string=qs, index=curr, message="List selector cannot be parsed {0}".format(result["r"]))
+                try:
+                    if select[0] != "":
+                        select[0] = int(select[0])
+                    if select[1] != "":
+                        select[1] = int(select[1])
+                    select = tuple(select)
+                except ValueError:
+                    raise ParserException(query_string=qs, index=curr, message="List selector cannot be parsed {0}".format(result["r"]))
+            else:
+                raise ParserException(query_string=qs, index=curr, message="List selector cannot be parsed {0}".format(result["r"]))
+
+    if qs[curr] != "]":
+        raise ParserException(query_string=qs, index=curr, message="Unexpected character {0}, expects ]".format(qs[curr]))
+
+    return { "r" : (C_S_LIST, select), "i" : curr + 1 }
+
+
+def parse_selector(qs, curr):
+    result = parse_string(qs, curr, end=['.'])
+    curr = result["i"]
+    return { "r" : (C_S_GENERIC, result["r"]), "i" : curr}
+
+
+def parse_query(qs):
+    """
+    parse the query string, returns a list of tuples
+    (command, value)
+    """
+    curr = 0
+    parsed_commands = []
+    while curr < len(qs):
+        if qs[curr] != '.':
+            raise ParserException(query_string=qs, index=curr, message="Unexpected character {0}, expects '.'".format(qs[curr]))
+        curr += 1
+        result = None
+        if qs[curr] == "[":
+            result = parse_selector_list(qs, curr)
+        else:
+            result = parse_selector(qs, curr)
+
+        parsed_commands.append(result["r"])
+        curr = result['i']
+
+    return parsed_commands
+
+
+#################### Run time ####################
+def run_query(d, queries, index):
+    current_query = queries[index]
+    if current_query[0] == C_S_LIST:
+        if type(d) != list:
+            raise RuntimeException(query=current_query, current_state=d, message="Expect list, found {0}".format(type(d)))
+
+        if type(current_query[1]) == str and current_query[1] == "*" :
+            d = [ run_queries(di, queries[index+1:]) for di in d ]
+            return d, len(queries)
+        elif type(current_query[1]) == int:
+            v = current_query[1]
+            if len(d) <= v :
+                raise RuntimeException(query=current_query, current_state=d, message="index out of bound")
+            else:
+                return d[v], index+1
+        elif type(current_query[1]) == tuple:
+            start = current_query[1][0]
+            end = current_query[1][1]
+            try:
+                if start == "":
+                    return d[:end], index+1
+                elif end == "":
+                    return d[start:], index+1
+                else:
+                    d[start:end], index+1
+            except IndexError:
+                raise RuntimeException(query=current_query, current_state=d, message="index out of bound")
+        else:
+            raise RuntimeException(query=current_query, current_state=d, message="Unknown list selector type")
+
+    elif current_query[0] == C_S_GENERIC:
+        if type(d) == dict:
+            v = current_query[1]
+            if v not in d:
+                raise RuntimeException(query=current_query, current_state=d, message="key not found {0}".format(v))
+            else:
+                return d[v], index+1
+        elif type(d) == list:
+            v = current_query[1]
+            try:
+                v = int(v)
+                return d[v], index+1
+            except ValueError:
+                raise RuntimeException(query=current_query, current_state=d, message="List indices must be integers, found : {0}".format(current_query[1]))
+            except IndexError:
+                raise RuntimeException(query=current_query, current_state=d, message="List index out of range : index {0}, size {0}".format(current_query[1], len(d)))
+        else:
+            raise RuntimeException(query=current_query, current_state=d, message="Unable to process selector on type {0}".format(type(d)))
+
+    else:
+        raise RuntimeException(query=current_query, current_state=d, message="Unknown selector")
+
+
+def run_queries(d, queries):
+    i = 0
+    while i < len(queries):
+        d, i = run_query(d, queries, i)
+    return d
+
+
+#################### Printing ####################
+def print_output(output, file, split=False):
+    if split and isinstance(output, list):
+        for item in output:
+            print_output(item, file, split=False)
+    else:
+        if type(output) in [dict, list]:
+            print(json.dumps(output), file=file)
+        else:
+            print(output, file=file)
+
+
+####################################################
+if __name__ == "__main__":
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "f:o:hs", ["--infile=", "--outfile", "--help", "--splitlist"])
+        opts = { opt : arg for opt, arg in opts }
+    except getopt.GetoptError:
+        print_help()
+        sys.exit(1)
+
+    infile = opts.get("-f") or opts.get("--infile") or None
+    outfile = opts.get("-o") or opts.get("--outfile") or None
+    splitfile = False
+
+    if "-s" in opts or "--splitlist" in opts:
+        splitfile = True
+
+    if "-h" in opts or "--help" in opts:
+        print_help()
+        sys.exit(1)
+
+    try:
+        if not infile:
+            lines = sys.stdin.readlines()
+        else:
+            f = open(infile)
+            lines = f.readlines()
+            f.close()
+
+        d = json.loads("".join(lines))
+        query = parse_query(args[0] if len(args) == 1 else "")
+        output = run_queries(d, query)
+
+        if outfile:
+            f = open(outfile, 'w')
+            print_output(output, f, split=splitfile)
+            f.close()
+        else:
+            print_output(output, sys.stdout, split=splitfile)
+        sys.exit(0)
+    except ParserException as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
+
+    except RuntimeException as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
+
+    except FileNotFoundError as e:
+        print("File not found : {0}".format(e.filename))
+        sys.exit(1)
