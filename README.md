@@ -78,3 +78,24 @@ output:
 test2.json
 test3.txt
 ```
+
+## Features
+1. Select elements from dictionary and list
+2. Iterate list and perform selection on that list
+3. Construct list from multiple query
+
+## Planned Feature 
+
+These features are planned before this is marked as v1.0.0
+
+1. String Formatting within element.
+2. Add/remove items.
+3. Pretty printer
+4. Counting operator
+5. Mathematic operators between 2 element + - * / 
+
+Crazy feature just for fun ?
+
+1. Map function for list
+2. Reduce function for list
+
