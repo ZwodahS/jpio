@@ -9,6 +9,7 @@ A Simple Json reader/writer for python.
 .int to select an item in the list
 .[query] to select part of the list, i.e 3:4, or 3:
 .[*].<query> to perform query on the entire list and return the output in a new list
+, allows for list construction from various input
 ```
 
 ## Example
@@ -45,8 +46,10 @@ v0.0.1
 To get all file name in a list
 
 ```
+cat test.json | jpio '.input.1.file, .input.2.file, .input.3.file'
 cat test.json | jpio '.input.[*].file'
 ```
+Both the queries above will produce the following output.
 
 output:
 ```

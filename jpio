@@ -24,7 +24,6 @@ import getopt
 C_S_LIST = 1                # selector list
 C_S_GENERIC = 2                # selector dict
 
-
 def print_help():
     print("jpio [options] <query>")
     print("    options:")
@@ -124,7 +123,7 @@ def parse_selector_list(qs, curr):
 
 
 def parse_selector(qs, curr):
-    result = parse_string(qs, curr, end=['.'])
+    result = parse_string(qs, curr, end=['.', ','])
     curr = result["i"]
     return { "r" : (C_S_GENERIC, result["r"]), "i" : curr}
 
@@ -136,7 +135,16 @@ def parse_query(qs):
     """
     curr = 0
     parsed_commands = []
+    all_commands = []
     while curr < len(qs):
+        if qs[curr] == ' ': #get rid of space after "," or beginning of query
+            curr+=1
+            continue
+        if qs[curr] == ",":
+            all_commands.append(parsed_commands)
+            parsed_commands = []
+            curr+=1
+            continue
         if qs[curr] != '.':
             raise ParserException(query_string=qs, index=curr, message="Unexpected character {0}, expects '.'".format(qs[curr]))
         curr += 1
@@ -149,7 +157,8 @@ def parse_query(qs):
         parsed_commands.append(result["r"])
         curr = result['i']
 
-    return parsed_commands
+    all_commands.append(parsed_commands)
+    return all_commands
 
 
 #################### Run time ####################
@@ -255,7 +264,10 @@ if __name__ == "__main__":
 
         d = json.loads("".join(lines))
         query = parse_query(args[0] if len(args) == 1 else "")
-        output = run_queries(d, query)
+        if len(query) == 1:
+            output = run_queries(d, query[0])
+        else:
+            output = [run_queries(d, q) for q in query]
 
         if outfile:
             f = open(outfile, 'w')
