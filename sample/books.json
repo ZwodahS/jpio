@@ -1,0 +1,35 @@
+{
+    "version" : {
+        "major" : 1,
+        "minor" : 0,
+        "patch" : 0
+    },
+    "books" : [
+        {
+            "name" : "Introduction to Json",
+            "isbn" : "M19165029",
+            "author" : "1"
+        },
+        {
+            "name" : "Introduction to Python",
+            "isbn" : "M35123115",
+            "author" : "2"
+        },
+        {
+            "name" : "Crazy JPIO",
+            "isbn" : "M51236131",
+            "author" : "3"
+        }
+    ],
+    "authors": [
+        {
+            "name" : "That guy that made Json"
+        },
+        {
+            "name" : "That guy that created Python"
+        },
+        {
+            "name" : "ZwodahS"
+        }
+    ]
+}

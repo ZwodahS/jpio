@@ -1,101 +1,101 @@
 
-A Simple Json reader/writer for python.
+# JPIO + JsTQL
+Json Python IO or JPIO is a simple Json reader/writer written in python that can be used in the command line.
+It uses JsTQL, a simple Json Transformation and Query Language that is created just for this purpose.
+
+JsTQL can be imported in any python program and it contains a parser and a runtime.
+JPIO is simply a wrapper around it.
 
 # Usage
-
-## Query
+## Example Json
 ```
-.varname to select a element in the dictionary
-.int to select an item in the list
-.[query] to select part of the list, i.e 3:4, or 3:
-.[*].<query> to perform query on the entire list and return the output in a new list
-, allows for list construction from various input
-```
-
-## Example
-```
-{
-    "version" : "v0.0.1",
-    "input" : [
+{            
+    "version" : {
+        "major" : 1,
+        "minor" : 0,
+        "patch" : 0
+    },
+    "books" : [
         {
-            "file" : "test1.json",
-            "type" : "json",
+            "name" : "Introduction to Json",
+            "isbn" : "M19165029",
+            "author" : "1"
         },
         {
-            "file" : "test2.json",
-            "type" : "json",
+            "name" : "Introduction to Python",
+            "isbn" : "M35123115",
+            "author" : "2"
         },
         {
-            "file" : "test3.txt",
-            "type" : "text",
+            "name" : "Crazy JPIO",
+            "isbn" : "M51236131",
+            "author" : "3"
+        }
+    ],
+    "authors": [
+        {
+            "name" : "That guy that made Json"
+        },
+        {   
+            "name" : "That guy that created Python"
+        },
+        {
+            "name" : "ZwodahS"
         }
     ]
 }
 ```
-
-To get the version
+## Query
+To query a single element, for example version
 ```
-cat test.json | jpio '.version'
-```
-
+> cat sample/books.json | jpio '.version'
 output:
-```
-v0.0.1
-```
-
-To get all file name in a list
-
-```
-cat test.json | jpio '.input.1.file, .input.2.file, .input.3.file'
-cat test.json | jpio '.input.[*].file'
-```
-Both the queries above will produce the following output.
-
+{"patch": 0, "minor": 0, "major": 1}
+> cat sample/books.json | jpio '.version.major'
 output:
-```
-["test.json", "test2.json", "test3.txt"]
-```
-
-To print each file name in a new line
-```
-cat test.json | jpio -s '.input.[*].file'
+1
 ```
 
+To get all the books in a list or partial list
+```
+> cat sample/books.json | jpio '.books'
+[{"isbn": "M19165029", "author": "1", "name": "Introduction to Json"}, {"isbn": "M35123115", "author": "2", "name": "Introduction to Python"}, {"isbn": "M51236131", "author": "3", "name": "Crazy JPIO"}]
+> cat sample/books.json | jpio '.books.[:2]'
+[{"author": "1", "name": "Introduction to Json", "isbn": "M19165029"}, {"author": "2", "name": "Introduction to Python", "isbn": "M35123115"}]
+```
+
+To get all the authors value 
+```
+> cat sample/books.json | jpio '.books.[*].author'
+["1", "2", "3"]
+```
+
+Or split the list into lines
+```
+> cat sample/books.json | jpio -s '.books.[*].author'
+1
+2
+3
+```
+
+Set the value of each books collection
+```
+> cat sample/books.json | jpio '.books.[*].price=30'
 output:
-```
-test.json
-test2.json
-test3.txt
+{"books": [{"author": "1", "price": 30, "name": "Introduction to Json", "isbn": "M19165029"}, {"author": "2", "price": 30, "name": "Introduction to Python", "isbn": "M35123115"}, {"author": "3", "price": 30, "name": "Crazy JPIO", "isbn": "M51236131"}], "version": {"minor": 0, "patch": 0, "major": 1}, "authors": [{"name": "That guy that made Json"}, {"name": "That guy that created Python"}, {"name": "ZwodahS"}]}
 ```
 
-To only print part of the list
+## Planned Feature ??
+
+### Statement as selector
 ```
-cat test.json | jpio -s '.input.[1:].[*].file'
+> cat sample/books.json | jpio '.books.[*].author=(.$root.authors.[(.author)])'
 ```
+This should denormalize the data and store the author dict in the books.
 
-output:
-```
-test2.json
-test3.txt
-```
+### Functions
+Several functions will be implemented, like upper, lower for string, sort, pop for list, delete for dict etc.
 
-## Features
-1. Select elements from dictionary and list
-2. Iterate list and perform selection on that list
-3. Construct list from multiple query
-
-## Planned Feature 
-
-These features are planned before this is marked as v1.0.0
-
-1. String Formatting within element.
-2. Add/remove items.
-3. Pretty printer
-4. Counting operator
-5. Mathematic operators between 2 element + - * / 
-
-Crazy feature just for fun ?
-
-1. Map function for list
-2. Reduce function for list
+### String intepolation
+Need not say more
 
