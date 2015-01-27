@@ -52,13 +52,13 @@ class RuntimeTestCase(CommonTestCase):
         self._test_equal(result, self.data["version"]["major"])
 
     def test_list_accessor(self):
-        query_string = ".books[0]"
+        query_string = ".books.[0]"
         statement = parse(query_string)
         result = run_query(self.data, statement)
         self._test_equal(result, self.data["books"][0])
 
     def test_list_iterator(self):
-        query_string = ".books[*].name"
+        query_string = ".books.[*].name"
         statement = parse(query_string)
         result = run_query(self.data, statement)
         expected_result = [ i["name"] for i in self.data["books"] ]

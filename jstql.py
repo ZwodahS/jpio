@@ -184,7 +184,7 @@ def _parse_statement(context, end=None):
             statement, commands = Statement(commands=commands), []
             statements.append(statement)
             context.pop() # pop |
-        elif context.match([".[", "["]):
+        elif context.match(".["):
             commands.append(_parse_iterator(context))
         elif context.match("."):
             commands.append(_parse_selector(context))
@@ -279,12 +279,9 @@ def _parse_string(context, end=None, escape_char=None, auto_escape=None):
 
 
 def _parse_iterator(context):
-    if context.match(".["):
-        context.pop(1)
-    elif context.match("["):
-        pass
-    else:
+    if not context.match(".["):
         raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected character '{0}', expects '.' or '[' ".format(context.peek(1)))
+    context.pop(1)
 
     if not context.has_more():
         raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected end of query")
