@@ -85,6 +85,32 @@ output:
 {"books": [{"author": "1", "price": 30, "name": "Introduction to Json", "isbn": "M19165029"}, {"author": "2", "price": 30, "name": "Introduction to Python", "isbn": "M35123115"}, {"author": "3", "price": 30, "name": "Crazy JPIO", "isbn": "M51236131"}], "version": {"minor": 0, "patch": 0, "major": 1}, "authors": [{"name": "That guy that made Json"}, {"name": "That guy that created Python"}, {"name": "ZwodahS"}]}
 ```
 
+## Creating data from scratch
+
+```
+> echo '{}' | jpio '.version=j({"major":1, "minor":0, "patch":0})'
+output:
+{"version": {"patch": 0, "major": 1, "minor": 0}}
+
+> echo '{}' | jpio '.values=j([5,4,3,2,1])'
+output:
+{"values": [5, 4, 3, 2, 1]}
+```
+
+## Simple functions
+
+### Sorting a list
+```
+> echo '{"values": [5, 4, 3, 2, 1]}' | jpio '.values#sort()'
+output:
+{"values": [1, 2, 3, 4, 5]}
+
+# sort by key
+> echo '{"values": [ {"a":3}, {"a":5}, {"a":1} ]}' | jpio '.values#sort(a)'
+output:
+{"values": [{"a": 1}, {"a": 3}, {"a": 5}]}
+```
+
 ## Planned Feature ??
 
 ### Statement as selector
