@@ -167,3 +167,134 @@ class ParserTestCase(CommonTestCase):
 
         statement2 = q.statements[1]
         self._basic_test(statement2.commands, [Selector], ["hello"], ["value"])
+
+    #################### Test function chain ####################
+
+    def test_single_function(self):
+        query = ".world#sort()"
+        q = parse(query)
+
+        self.assertEqual(type(q), Statement)
+        self.assertEqual(len(q.commands), 2)
+
+        command1 = q.commands[0]
+        command2 = q.commands[1]
+
+        self.assertEqual(type(command1), Selector)
+        self.assertEqual(command1.value, "world")
+
+        self.assertEqual(type(command2), FunctionChain)
+        self.assertEqual(len(command2.functions), 1)
+
+        function1 = command2.functions[0]
+        self.assertEqual(type(function1), Function)
+        self.assertEqual(function1.name, "sort")
+        self.assertEqual(len(function1.args), 0)
+
+    def test_function_chain(self):
+        query = ".world#sort()#reversed()"
+        q = parse(query)
+
+        self.assertEqual(type(q), Statement)
+        self.assertEqual(len(q.commands), 2)
+
+        command1 = q.commands[0]
+        command2 = q.commands[1]
+
+        self.assertEqual(type(command1), Selector)
+        self.assertEqual(command1.value, "world")
+
+        self.assertEqual(type(command2), FunctionChain)
+        self.assertEqual(len(command2.functions), 2)
+
+        function1 = command2.functions[0]
+        self.assertEqual(type(function1), Function)
+        self.assertEqual(function1.name, "sort")
+        self.assertEqual(len(function1.args), 0)
+
+        function2 = command2.functions[1]
+        self.assertEqual(type(function2), Function)
+        self.assertEqual(function2.name, "reversed")
+        self.assertEqual(len(function2.args), 0)
+
+    def test_function_args(self):
+        query = ".world#del(key)"
+        q = parse(query)
+
+        self.assertEqual(type(q), Statement)
+        self.assertEqual(len(q.commands), 2)
+
+        command1 = q.commands[0]
+        command2 = q.commands[1]
+
+        self.assertEqual(type(command1), Selector)
+        self.assertEqual(command1.value, "world")
+
+        self.assertEqual(type(command2), FunctionChain)
+        self.assertEqual(len(command2.functions), 1)
+
+        function1 = command2.functions[0]
+        self.assertEqual(type(function1), Function)
+        self.assertEqual(function1.name, "del")
+        self.assertEqual(len(function1.args), 1)
+        self.assertEqual(function1.args[0], "key")
+
+    def test_function_chain_with_args(self):
+        query = ".world#del(key)#del(key2,False)"
+        q = parse(query)
+
+        self.assertEqual(type(q), Statement)
+        self.assertEqual(len(q.commands), 2)
+
+        command1 = q.commands[0]
+        command2 = q.commands[1]
+
+        self.assertEqual(type(command1), Selector)
+        self.assertEqual(command1.value, "world")
+
+        self.assertEqual(type(command2), FunctionChain)
+        self.assertEqual(len(command2.functions), 2)
+
+        function1 = command2.functions[0]
+        self.assertEqual(type(function1), Function)
+        self.assertEqual(function1.name, "del")
+        self.assertEqual(len(function1.args), 1)
+        self.assertEqual(function1.args[0], "key")
+
+        function2 = command2.functions[1]
+        self.assertEqual(type(function2), Function)
+        self.assertEqual(function2.name, "del")
+        self.assertEqual(len(function2.args), 2)
+        self.assertEqual(function2.args[0], "key2")
+        self.assertEqual(function2.args[1], "False")
+
+    def test_selector_in_function(self):
+        query = ".world#sort()#pop((.count))"
+        q = parse(query)
+
+        self.assertEqual(type(q), Statement)
+        self.assertEqual(len(q.commands), 2)
+
+        command1 = q.commands[0]
+        command2 = q.commands[1]
+
+        self.assertEqual(type(command1), Selector)
+        self.assertEqual(command1.value, "world")
+
+        self.assertEqual(type(command2), FunctionChain)
+        self.assertEqual(len(command2.functions), 2)
+
+        function1 = command2.functions[0]
+        self.assertEqual(type(function1), Function)
+        self.assertEqual(function1.name, "sort")
+        self.assertEqual(len(function1.args), 0)
+
+        function2 = command2.functions[1]
+        self.assertEqual(type(function2), Function)
+        self.assertEqual(function2.name, "pop")
+        self.assertEqual(len(function2.args), 1)
+        args1 = function2.args[0]
+        self.assertEqual(type(args1), Statement)
+        self.assertEqual(len(args1.commands), 1)
+        self.assertEqual(type(args1.commands[0]), Selector)
+        self.assertEqual(args1.commands[0].value, "count")

@@ -18,6 +18,7 @@
 
 import json
 import copy
+from functools import reduce
 
 ################################################### Common Stuffs #####################################################
 def recursive_copy(data):
@@ -77,6 +78,7 @@ class Selector(Command):
 
     def __str__(self):
         return "({0}:{1})".format(type(self).__name__, self.value)
+
 
 class Iterator(Command):
 
@@ -158,6 +160,17 @@ class ParserContext(object):
         return self.index < len(self.query_string) and self.index >= 0
 
 
+def _expects(context, values):
+    if not isinstance(values, list):
+        values = [values]
+    expected = ' or '.join(values)
+
+    if not context.has_more():
+        raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected end of query, expects {O}".format(expected))
+    if not context.match(values):
+        max_length = reduce(lambda x, y : x if x > y else y, (len(v) for v in values), 0)
+        raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected character '{0}', expects '{1}'".format(context.peek(max_length), expected))
+
 def parse(query_string):
     context = ParserContext(index=0, query_string=query_string)
     return _parse_statement(context)
@@ -167,9 +180,12 @@ def _parse_statement(context, end=None):
     end = end or []
     statements = []
     commands = []
+    last_command=False
     while context.has_more():
         if context.match(end):
             break
+        if last_command and context.has_more() and not context.match("|"):
+            raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Statement of type {0} must be the last statement".format(type(commands[-1]).__name__))
         if context.match("("):
             context.pop() # pop (
             statement = _parse_statement(context, end=end+[")"])
@@ -183,6 +199,7 @@ def _parse_statement(context, end=None):
         elif context.match("|"):
             statement, commands = Statement(commands=commands), []
             statements.append(statement)
+            last_command=False
             context.pop() # pop |
         elif context.match(".["):
             commands.append(_parse_iterator(context))
@@ -193,6 +210,10 @@ def _parse_statement(context, end=None):
                 raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error: Cannot assign to root")
             assignment_target, commands = commands[-1], commands[0:-1]
             commands.append(_parse_assignment(context, assignment_target,end=end))
+            last_command=True
+        elif context.match("#"):
+            commands.append(_parse_functionchain(context))
+            last_command=True
         else:
             raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Errror : Unexpected character '{0}'".format(context.peek(1)))
 
@@ -203,6 +224,38 @@ def _parse_statement(context, end=None):
     else:
         return PipedStatement(statements=statements)
 
+
+def _parse_functionchain(context):
+
+    chain = []
+    while context.match("#"):
+        function = _parse_function(context)
+        chain.append(function)
+    return FunctionChain(chain)
+
+
+def _parse_function(context):
+    _expects(context, "#")
+    context.pop()
+    funcname = _parse_string(context, end=SPECIAL_CHARS)
+    _expects(context, "(")
+    context.pop()
+    args = []
+    while context.has_more() and not context.match(")"):
+        if not context.match("("):
+            value = _parse_value(context)
+            args.append(value)
+        else:
+            value = _parse_statement(context)
+            args.append(value)
+
+        if context.match(","):
+            context.pop()
+        else:
+            _expects(context, ")")
+    _expects(context, ")")
+    context.pop()
+    return Function(funcname, args)
 
 def _parse_selector(context):
     if not context.match(["."]):
