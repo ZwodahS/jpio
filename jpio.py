@@ -77,11 +77,7 @@ if __name__ == "__main__":
         else:
             print_result(result, sys.stdout, split=splitfile)
         sys.exit(0)
-    except jstql.JSTQLParserException as e:
-        print(e, file=sys.stderr)
-        sys.exit(1)
-
-    except jstql.JSTQLRuntimeException as e:
+    except jstql.JSTQLException as e:
         print(e, file=sys.stderr)
         sys.exit(1)
 

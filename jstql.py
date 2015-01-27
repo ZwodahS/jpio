@@ -37,7 +37,7 @@ class JSTQLException(Exception):
         self.message = message
 
     def __str__(self):
-        return message
+        return self.message
 
 class JSTQLParserException(JSTQLException):
     def __init__(self, query_string, index, message):
@@ -248,8 +248,9 @@ def _parse_function(context):
             value = _parse_value(context)
             args.append(value)
         else:
-            value = _parse_statement(context)
-            args.append(value)
+            raise JSTQLException(message="Statement in function arguments is not implemented but planned")
+            # value = _parse_statement(context)
+            # args.append(value)
 
         if context.match(","):
             context.pop()
