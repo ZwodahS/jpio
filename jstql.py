@@ -237,7 +237,9 @@ def _parse_functionchain(context):
 def _parse_function(context):
     _expects(context, "#")
     context.pop()
-    funcname = _parse_string(context, end=SPECIAL_CHARS)
+    end = list(SPECIAL_CHARS)
+    end.remove('.')
+    funcname = _parse_string(context, end=end, auto_escape=["."])
     _expects(context, "(")
     context.pop()
     args = []
