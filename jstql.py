@@ -166,7 +166,7 @@ def _expects(context, values):
     expected = ' or '.join(values)
 
     if not context.has_more():
-        raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected end of query, expects {O}".format(expected))
+        raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected end of query, expects {0}".format(expected))
     if not context.match(values):
         max_length = reduce(lambda x, y : x if x > y else y, (len(v) for v in values), 0)
         raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected character '{0}', expects '{1}'".format(context.peek(max_length), expected))
@@ -509,4 +509,14 @@ def _run_commands(commands, context):
                 raise JSTQLException("Right hand side of assignment cannot be a modifier statement")
             value = _run_commands(command.value.commands, RuntimeContext(data=context.data, mdata=None, parent=context.parent))
         context.mdata[command.selector.value] = value
+        return context.origin.mdata
+    elif isinstance(command, FunctionChain):
+        for function in command.functions:
+            import extensions # only import when we are running
+            if function.name not in extensions.registered_functions:
+                raise JSTQLException("Function {0} not found".format(function.name))
+            function_class = extensions.registered_functions[function.name]
+            if type(context.mdata) not in function_class.allowed_context:
+                raise JSTQLRuntimeException(current_state=context.mdata, message="Function {0} cannot be applied to type {1}".format(function.name, type(context.mdata).__name__))
+            context = function_class.run(context, *function.args)
         return context.origin.mdata
