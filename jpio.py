@@ -11,11 +11,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Copyright (C) 2014- ZwodahS
-# github.com/ZwodahS/
-# zwodahs.me
-# @ZwodahS
+
+# Check out https://github.com/ZwodahS/jpio for the latest version of the software.
 
 import sys
 import getopt
