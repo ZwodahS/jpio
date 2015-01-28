@@ -319,3 +319,20 @@ class ParserTestCase(CommonTestCase):
         self.assertEqual(type(function1), Function)
         self.assertEqual(function1.name, "default.sort")
         self.assertEqual(len(function1.args), 0)
+
+
+    def test_list_construction_with_value(self):
+        query = ".world=([1, 2, 3])"
+        q = parse(query)
+
+        self.assertEqual(type(q), Statement)
+        self.assertEqual(len(q.commands), 1)
+
+        command1 = q.commands[0]
+
+        self.assertEqual(type(command1), Assignment)
+        self.assertEqual(type(command1.selector), Selector)
+        self.assertEqual(command1.selector.value, "world")
+        self.assertEqual(type(command1.value), Statement)
+        self.assertEqual(len(command1.value.commands), 1)
+        self.assertEqual(type(command1.value.commands[0]), ListConstruction)

@@ -119,6 +119,13 @@ class Function(Command):
         self.args = args
 
 
+class ListConstruction(Command):
+
+    def __init__(self, statements):
+        self.statements = statements
+
+
+
 SPECIAL_CHARS = (",", "[", "]", "#", ".", "(", ")", "=", ":", "|")
 
 #################################################### Parser Stuffs ####################################################
@@ -185,6 +192,11 @@ def _parse_statement(context, end=None):
             break
         if last_command and context.has_more() and not context.match("|"):
             raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Statement of type {0} must be the last statement".format(type(commands[-1]).__name__))
+        if context.match("["):
+            if len(commands) > 0:
+                raise JSTQLParserException(query_string=context.query_string, index=context.index, message="List construction cannot happen in the middle of query")
+            list_construction = _parse_list_construction(context)
+            return Statement(commands=[list_construction])
         if context.match("("):
             context.pop() # pop (
             statement = _parse_statement(context, end=end+[")"])
@@ -254,6 +266,30 @@ def _parse_function(context):
     _expects(context, ")")
     context.pop()
     return Function(funcname, args)
+
+
+def _parse_list_construction(context):
+    _expects(context, "[")
+    context.pop()
+    statements = []
+    while context.has_more():
+        if context.match(" "):
+            context.pop()
+            continue
+        if context.match("]"):
+            break
+        if context.match("("):
+            statement = _parse_statement(context, end=[",", "]"])
+            statements.append(statement)
+        else:
+            value = _parse_value(context)
+            statements.append(value)
+        if context.match(","):
+            context.pop()
+    _expects(context, "]")
+    context.pop()
+    return ListConstruction(statements=statements)
+
 
 def _parse_selector(context):
     _expects(context, ".")
