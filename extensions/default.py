@@ -35,6 +35,22 @@ A copy of the data will be passed to the function.
 from jstql import JSTQLRuntimeException
 from operator import itemgetter, attrgetter
 
+def _sort_func(context, reverse=False, key=None, keyType=None):
+    if not key:
+        context.mdata.sort(reverse=reverse)
+        return context
+
+    keyType = keyType or "item"
+    if keyType == "attr":
+        context.mdata.sort(key=attrgetter(key), reverse=reverse)
+    elif keyType == "item":
+        context.mdata.sort(key=itemgetter(key), reverse=reverse)
+    else:
+        raise JSTQLRuntimeException(current_state=context.data, message="Unknown sort type {0}".format(keyType))
+
+    return context
+
+
 class SortFunction(object):
 
     name = "sort"
@@ -44,16 +60,28 @@ class SortFunction(object):
     @classmethod
     def run(cls, context, *args):
         if len(args) == 0:
-            context.mdata.sort()
+            return _sort_func(context)
         elif len(args) == 1:
-            context.mdata.sort(key=itemgetter(args[0]))
+            return _sort_func(context, key=args[0])
         else:
-            if args[0] == "attr":
-                context.mdata.sort(key=attrgetter(args[1]))
-            elif args[0] == "item":
-                context.mdata.sort(key=itemgetter(args[1]))
-            else:
-                raise JSTQLRuntimeException(current_state=context.data, message="Unknown sort type {0}".format(args[0]))
-        return context
+            return _sort_func(context, key=args[1], ketType=args[0])
 
-functions = [SortFunction]
+
+class RSortFunction(object):
+
+    name = "rsort"
+    allowed_context = [list]
+    args = [0, 1, 2]
+
+    @classmethod
+    def run(cls, context, *args):
+        if len(args) == 0:
+            return _sort_func(context, reverse=True)
+        elif len(args) == 1:
+            return _sort_func(context, key=args[0], reverse=True)
+        else:
+            return _sort_func(context, key=args[1], ketType=args[0], reverse=True)
+
+
+
+functions = [SortFunction, RSortFunction]
