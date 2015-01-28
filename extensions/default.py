@@ -38,7 +38,7 @@ from operator import itemgetter, attrgetter
 def _sort_func(context, reverse=False, key=None, keyType=None):
     if not key:
         context.mdata.sort(reverse=reverse)
-        return context
+        return context.mdata
 
     keyType = keyType or "item"
     if keyType == "attr":
@@ -48,7 +48,7 @@ def _sort_func(context, reverse=False, key=None, keyType=None):
     else:
         raise JSTQLRuntimeException(current_state=context.data, message="Unknown sort type {0}".format(keyType))
 
-    return context
+    return context.mdata
 
 
 class SortFunction(object):
@@ -83,5 +83,25 @@ class RSortFunction(object):
             return _sort_func(context, key=args[1], ketType=args[0], reverse=True)
 
 
+class StringUpperFunction(object):
 
-functions = [SortFunction, RSortFunction]
+    name = "upper"
+    allowed_context = [str]
+    args = [0]
+
+    @classmethod
+    def run(cls, context, *args):
+        return context.mdata.upper()
+
+
+class StringLowerFunction(object):
+
+    name = "lower"
+    allowed_context = [str]
+    args = [0]
+
+    @classmethod
+    def run(cls, context, *args):
+        return context.mdata.lower()
+
+functions = [SortFunction, RSortFunction, StringUpperFunction, StringLowerFunction]

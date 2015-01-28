@@ -169,6 +169,7 @@ def _expects(context, values):
         max_length = reduce(lambda x, y : x if x > y else y, (len(v) for v in values), 0)
         raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected character '{0}', expects '{1}'".format(context.peek(max_length), expected))
 
+
 def parse(query_string):
     context = ParserContext(index=0, query_string=query_string)
     return _parse_statement(context)
@@ -187,11 +188,7 @@ def _parse_statement(context, end=None):
         if context.match("("):
             context.pop() # pop (
             statement = _parse_statement(context, end=end+[")"])
-            if not context.match(")"):
-                if context.peek(1) == None:
-                    raise JSTQLParserException(query_string=context.query_string, index=len(context.query_string), message="Unexpected end of line")
-                else:
-                    raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Unexpected character '{0}', expects ')'".format(context.peek(1)))
+            _expects(context, ")")
             context.pop() # pop )
             return statement
         elif context.match("|"):
@@ -259,8 +256,7 @@ def _parse_function(context):
     return Function(funcname, args)
 
 def _parse_selector(context):
-    if not context.match(["."]):
-        raise JSTQLParserException(query_string=query_string, index=index, message="Syntax Error, Unexpected character {0}, expects {1}".format(context.peek(1), " or ".join(match)))
+    _expects(context, ".")
     context.pop() # pop .
     value = _parse_value(context)
     if type(value) not in [int, str, float]:
@@ -277,8 +273,7 @@ def _parse_value(context):
         if not context.has_more():
             raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected end of query")
         string_value = _parse_string(context, end=[")"], auto_escape=auto_escape)
-        if not context.match([")"]):
-            raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected characters '{0}' expects ')'".format(context.peek(1)))
+        _expects(context, ")")
         context.pop(1)
         value = string_value
         if value_type == "i":
@@ -333,8 +328,7 @@ def _parse_string(context, end=None, escape_char=None, auto_escape=None):
 
 
 def _parse_iterator(context):
-    if not context.match(".["):
-        raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected character '{0}', expects '.' or '[' ".format(context.peek(1)))
+    _expects(context, ".[")
     context.pop(1)
 
     if not context.has_more():
@@ -374,9 +368,7 @@ def _parse_iterator(context):
     if not context.has_more():
         raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected end of query")
 
-    if not context.match("]"):
-        raise JSTQLParserException(query_string=context.query_string, index=context.index, message="Syntax Error : Unexpected character {0}, expects ']'".format(context.peek(1)))
-
+    _expects(context, "]")
     context.pop() # pop ]
 
     if single_select:
@@ -403,10 +395,11 @@ class RuntimeContext(object):
     It also store a reference to the previous context.
     """
 
-    def __init__(self, data, parent=None, mdata=None):
+    def __init__(self, data, parent=None, mdata=None, selector=None):
         self.data = data
         self.mdata = mdata # if no mdata is present means this is not in copying mode.
         self.parent = parent
+        self.selector = selector
 
     def copy(self):
         return RuntimeContext(data=self.data, mdata=self.mdata)
@@ -418,7 +411,8 @@ class RuntimeContext(object):
                     return RuntimeContext(
                             data=self.data[value],
                             mdata=self.mdata[value] if self.mdata else None,
-                            parent=self
+                            parent=self,
+                            selector=value
                     )
                 except IndexError:
                     raise JSTQLRuntimeException(current_state=self.data, message="Runtime Error : Index out of bound {0}".format(value))
@@ -430,7 +424,8 @@ class RuntimeContext(object):
                 return RuntimeContext(
                         data=self.data[value],
                         mdata=self.mdata[value] if self.mdata else None,
-                        parent=self
+                        parent=self,
+                        selector=value
                 )
             except KeyError:
                 raise JSTQLRuntimeException(current_state=self.data, message="Runtime Error : unable to find key {0}".format(value))
@@ -517,5 +512,9 @@ def _run_commands(commands, context):
             function_class = extensions.registered_functions[function.name]
             if type(context.mdata) not in function_class.allowed_context:
                 raise JSTQLRuntimeException(current_state=context.mdata, message="Function {0} cannot be applied to type {1}".format(function.name, type(context.mdata).__name__))
-            context = function_class.run(context, *function.args)
+            data = function_class.run(context, *function.args)
+            if not context.parent:
+                context.mdata = data
+            else:
+                context.parent.mdata[context.selector] = data
         return context.origin.mdata
