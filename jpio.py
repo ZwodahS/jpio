@@ -27,6 +27,17 @@ def print_help():
     print("    -o --outfile         : output to file instead of stdout")
     print("    -s --splitlist       : split the list content each to their own line")
     print("    -p --pretty          : pretty print the json")
+    print("    -h --help            : print this help")
+    print("    --list-functions     : list the available functions")
+
+
+def print_functions():
+    import extensions
+    for fname, func in extensions.registered_functions.items():
+        print("    {0} : {1}".format(fname, func.description))
+        for use in func.usages:
+            print("          {0}".format(use))
+
 
 def print_result(result, out, split=False):
     if split and isinstance(result, list):
@@ -40,15 +51,20 @@ def print_result(result, out, split=False):
 
 if __name__ == "__main__":
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "f:o:hs", ["--infile=", "--outfile", "--help", "--splitlist"])
+        opts, args = getopt.getopt(sys.argv[1:], "f:o:hs", ["infile=", "outfile", "help", "splitlist", "list-functions"])
         opts = { opt : arg for opt, arg in opts }
-    except getopt.GetoptError:
+    except getopt.GetoptError as e:
+        import traceback; traceback.print_exc()
         print_help()
         sys.exit(1)
 
     if "-h" in opts or "--help" in opts:
         print_help()
-        sys.exit(1)
+        sys.exit(0)
+
+    if "--list-functions" in opts:
+        print_functions()
+        sys.exit(0)
 
     infile = opts.get("-f") or opts.get("--infile") or None
     outfile = opts.get("-o") or opts.get("--outfile") or None

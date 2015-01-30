@@ -56,6 +56,9 @@ class SortFunction(object):
     name = "sort"
     allowed_context = [list]
     args = [0, 1, 2]
+    description = "Sort a list using the values or a key."
+    usages = [ "sort() : sort by value",
+               "sort(key) : sort by a key" ]
 
     @classmethod
     def run(cls, context, *args):
@@ -72,6 +75,9 @@ class RSortFunction(object):
     name = "rsort"
     allowed_context = [list]
     args = [0, 1, 2]
+    description = "Reverse sort a list using the values or a key"
+    usages = [ "rsort() : sort by value",
+               "rsort(key) : sort by a key" ]
 
     @classmethod
     def run(cls, context, *args):
@@ -88,6 +94,8 @@ class StringUpperFunction(object):
     name = "upper"
     allowed_context = [str]
     args = [0]
+    description = "Change a string to upper case"
+    usages = [ "upper()" ]
 
     @classmethod
     def run(cls, context, *args):
@@ -99,6 +107,8 @@ class StringLowerFunction(object):
     name = "lower"
     allowed_context = [str]
     args = [0]
+    description = "Change a string to lower case"
+    usages = [ "lower()" ]
 
     @classmethod
     def run(cls, context, *args):
