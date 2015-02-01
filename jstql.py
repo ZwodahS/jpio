@@ -495,7 +495,11 @@ def run_query(data, query):
         return _run_commands(query.commands, context)
 
 
-def _run_commands(commands, context):
+def _run_commands(commands, context, allow_modifier=True):
+
+    if not allow_modifier and type(commands[-1]) in [Assignment, FunctionChain]:
+        raise JSTQLException(message="No modifier statement allowed in list construction")
+
     index = 0
     while index < len(commands)-1:
         command = commands[index]
@@ -554,3 +558,5 @@ def _run_commands(commands, context):
             else:
                 context.parent.mdata[context.selector] = data
         return context.origin.mdata
+    elif isinstance(command, ListConstruction):
+        return [ _run_commands(statement.commands, context, allow_modifier=False) for statement in command.statements ]
