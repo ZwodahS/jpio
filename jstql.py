@@ -31,11 +31,12 @@ def recursive_copy(data):
     return data.copy()
 #################### Exception ####################
 class JSTQLException(Exception):
-    def __init__(self, message):
-        self.message = message
+    def __init__(self, message=None):
+        self.message = message or "unknown error"
 
     def __str__(self):
         return self.message
+
 
 class JSTQLParserException(JSTQLException):
     def __init__(self, query_string, index, message):
@@ -50,6 +51,7 @@ class JSTQLParserException(JSTQLException):
         line.append(" error : {0}".format(self.message))
         return "\n".join(line)
 
+
 class JSTQLRuntimeException(JSTQLException):
     def __init__(self, current_state, message):
         super().__init__(message)
@@ -60,6 +62,12 @@ class JSTQLRuntimeException(JSTQLException):
         line.append(" current state : {0}".format(self.current_state))
         line.append(" error : {0}".format(self.message))
         return "\n".join(line)
+
+
+class ModifierNotAllowed(JSTQLException):
+
+    def __init__(self):
+        self.message = "modifier not allowed"
 
 #################### Node ####################
 
@@ -255,9 +263,8 @@ def _parse_function(context):
             value = _parse_value(context)
             args.append(value)
         else:
-            raise JSTQLException(message="Statement in function arguments is not implemented but planned")
-            # value = _parse_statement(context)
-            # args.append(value)
+            value = _parse_statement(context)
+            args.append(value)
 
         if context.match(","):
             context.pop()
@@ -497,8 +504,9 @@ def run_query(data, query):
 
 def _run_commands(commands, context, allow_modifier=True):
 
+    # if modifier is not allowed but is modifier, raise exception
     if not allow_modifier and type(commands[-1]) in [Assignment, FunctionChain]:
-        raise JSTQLException(message="No modifier statement allowed in list construction")
+        raise ModifierNotAllowed()
 
     index = 0
     while index < len(commands)-1:
@@ -510,7 +518,7 @@ def _run_commands(commands, context, allow_modifier=True):
                 raise JSTQLRuntimeException(context.data, message="Unable to iterate object of type {0}".format(type(context.data).__name))
             if type(commands[-1]) in [Assignment, FunctionChain]:
                 for i in range(0, len(context.data)):
-                    _run_commands(commands[index+1:], context.select(i))
+                    _run_commands(commands[index+1:], context.select(i), allow_modifier=allow_modifier)
                 return context.origin.mdata
             else:
                 output = [ _run_commands(commands[index+1:], context.select(i)) for i in range(0, len(context.data)) ]
@@ -523,6 +531,7 @@ def _run_commands(commands, context, allow_modifier=True):
     if isinstance(command, Selector):
         context = context.select(command.value)
         return context.data
+
     elif isinstance(command, Iterator):
         if isinstance(context.data, list):
             if command.value == "*":
@@ -535,24 +544,39 @@ def _run_commands(commands, context, allow_modifier=True):
                 return context.data[command.value[0]:command.value[1]]
         else:
             raise JSTQLRuntimeException(context.data, message="Unable to iterate object of type {0}".format(type(context.data).__name))
+
     elif isinstance(command, Assignment):
         if type(command.value) in [int, str, dict, list, float]:
             value = command.value
         elif isinstance(command.value, Statement):
-            if type(command.value.commands[-1]) in [Assignment, FunctionChain]:
+            try:
+                value = _run_commands(command.value.commands, RuntimeContext(data=context.data, mdata=None, parent=context.parent), allow_modifier=False)
+            except ModifierNotAllowed as m:
                 raise JSTQLException("Right hand side of assignment cannot be a modifier statement")
-            value = _run_commands(command.value.commands, RuntimeContext(data=context.data, mdata=None, parent=context.parent))
         context.mdata[command.selector.value] = value
         return context.origin.mdata
+
     elif isinstance(command, FunctionChain):
         for function in command.functions:
             import extensions # only import when we are running
             if function.name not in extensions.registered_functions:
                 raise JSTQLException("Function {0} not found".format(function.name))
             function_class = extensions.registered_functions[function.name]
+
             if type(context.mdata) not in function_class.allowed_context:
                 raise JSTQLRuntimeException(current_state=context.mdata, message="Function {0} cannot be applied to type {1}".format(function.name, type(context.mdata).__name__))
-            data = function_class.run(context, *function.args)
+
+            input_args = []
+            for arg in function.args:
+                if isinstance(arg, Command):
+                    if not isinstance(arg, Statement):
+                        raise JSTQLException(message="Command of {0} cannot be used as function arguments".format(type(arg).__name__))
+                    try:
+                        arg = _run_commands(arg.commands, context.parent, allow_modifier=False)
+                    except ModifierNotAllowed as m:
+                        raise JSTQLException("Function argument cannot be a modifier")
+                input_args.append(arg)
+            data = function_class.run(context, *input_args)
             if not context.parent:
                 context.mdata = data
             else:
