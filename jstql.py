@@ -475,7 +475,7 @@ class RuntimeContext(object):
         raise JSTQLRuntimeException(current_state=self.data, message="Runtime Error : selecting from type {0} using key {1} is not allowed".format(type(self.data).__name__, value))
 
     def can_iterate(self):
-        return isinstance(self.data, list)
+        return isinstance(self.data, (list, dict))
 
     @property
     def origin(self):
@@ -542,6 +542,11 @@ def _run_commands(commands, context, allow_modifier=True):
                 return context.data[command.value[0]:]
             else:
                 return context.data[command.value[0]:command.value[1]]
+        elif isinstance(context.data, dict):
+            if command.value == "*":
+                return context.data.values()
+            else:
+                raise JSTQLRuntimeException(context.data, message="Unable to iterate object of type {0}".format(type(context.data).__name))
         else:
             raise JSTQLRuntimeException(context.data, message="Unable to iterate object of type {0}".format(type(context.data).__name))
 
