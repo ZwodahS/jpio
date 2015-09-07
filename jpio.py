@@ -39,19 +39,22 @@ def print_functions():
             print("          {0}".format(use))
 
 
-def print_result(result, out, split=False):
+def print_result(result, out, split=False, pretty=False):
     if split and isinstance(result, list):
         for item in result:
-            print_result(item, out, split=False)
+            print_result(item, out, split=False, pretty=pretty)
     else:
         if type(result) in [dict, list]:
-            print(json.dumps(result), file=out)
+            if not pretty:
+                print(json.dumps(result), file=out)
+            else:
+                print(json.dumps(result, indent=4, separators=(",", ": ")))
         else:
             print(result, file=out)
 
 if __name__ == "__main__":
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "f:o:hs", ["infile=", "outfile", "help", "splitlist", "list-functions"])
+        opts, args = getopt.getopt(sys.argv[1:], "f:o:hsp", ["infile=", "outfile", "help", "splitlist", "list-functions", "pretty"])
         opts = { opt : arg for opt, arg in opts }
     except getopt.GetoptError as e:
         import traceback; traceback.print_exc()
@@ -68,6 +71,7 @@ if __name__ == "__main__":
 
     infile = opts.get("-f") or opts.get("--infile") or None
     outfile = opts.get("-o") or opts.get("--outfile") or None
+    pretty = ("-p" in opts) or ("--pretty" in opts.get("--pretty")) or None
     splitfile = False
 
     if "-s" in opts or "--splitlist" in opts:
@@ -86,9 +90,9 @@ if __name__ == "__main__":
 
         if outfile:
             with open(outfile, 'w') as f:
-                print_result(result, f, split=splitfile)
+                print_result(result, f, split=splitfile, pretty=pretty)
         else:
-            print_result(result, sys.stdout, split=splitfile)
+            print_result(result, sys.stdout, split=splitfile, pretty=pretty)
         sys.exit(0)
     except jstql.JSTQLException as e:
         print(e, file=sys.stderr)
