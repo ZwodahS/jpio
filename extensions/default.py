@@ -50,6 +50,30 @@ def _sort_func(context, reverse=False, key=None, keyType=None):
 
     return context.mdata
 
+class LenFunction(object):
+    name = "len"
+    allowed_context = [list, dict]
+    args = [0]
+    description = "Get the length of a list or dictionary"
+    usages = [ "len() : get the length" ]
+    is_modifier = False
+
+    @classmethod
+    def run(cls, context, *args):
+        return len(context.mdata)
+
+
+class KeysFunction(object):
+    name = "keys"
+    allowed_context = [dict]
+    args = [0]
+    description = "Return all keys of a dictionary"
+    usages = [ "keys() : return all the keys" ]
+    is_modifier = False
+
+    @classmethod
+    def run(cls, context, *args):
+        return list(context.data.keys())
 
 class SortFunction(object):
 
@@ -59,6 +83,7 @@ class SortFunction(object):
     description = "Sort a list using the values or a key."
     usages = [ "sort() : sort by value",
                "sort(key) : sort by a key" ]
+    is_modifier = True
 
     @classmethod
     def run(cls, context, *args):
@@ -78,6 +103,7 @@ class RSortFunction(object):
     description = "Reverse sort a list using the values or a key"
     usages = [ "rsort() : sort by value",
                "rsort(key) : sort by a key" ]
+    is_modifier = True
 
     @classmethod
     def run(cls, context, *args):
@@ -96,6 +122,7 @@ class StringUpperFunction(object):
     args = [0]
     description = "Change a string to upper case"
     usages = [ "upper()" ]
+    is_modifier = True
 
     @classmethod
     def run(cls, context, *args):
@@ -109,9 +136,10 @@ class StringLowerFunction(object):
     args = [0]
     description = "Change a string to lower case"
     usages = [ "lower()" ]
+    is_modifier = True
 
     @classmethod
     def run(cls, context, *args):
         return context.mdata.lower()
 
-functions = [SortFunction, RSortFunction, StringUpperFunction, StringLowerFunction]
+functions = [SortFunction, RSortFunction, StringUpperFunction, StringLowerFunction, LenFunction, KeysFunction]

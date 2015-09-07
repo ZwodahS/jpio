@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     infile = opts.get("-f") or opts.get("--infile") or None
     outfile = opts.get("-o") or opts.get("--outfile") or None
-    pretty = ("-p" in opts) or ("--pretty" in opts.get("--pretty")) or None
+    pretty = ("-p" in opts) or ("--pretty" in opts) or None
     splitfile = False
 
     if "-s" in opts or "--splitlist" in opts:

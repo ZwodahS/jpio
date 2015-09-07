@@ -571,14 +571,16 @@ def _run_commands(commands, context, allow_modifier=True):
         return context.origin.mdata
 
     elif isinstance(command, FunctionChain):
-        for function in command.functions:
-            import extensions # only import when we are running
+        import extensions # only import when we are running
+        function_class = None
+        for ind, function in enumerate(command.functions):
             if function.name not in extensions.registered_functions:
                 raise JSTQLException("Function {0} not found".format(function.name))
             function_class = extensions.registered_functions[function.name]
 
             if type(context.mdata) not in function_class.allowed_context:
-                raise JSTQLRuntimeException(current_state=context.mdata, message="Function {0} cannot be applied to type {1}".format(function.name, type(context.mdata).__name__))
+                raise JSTQLRuntimeException(current_state=context.mdata,
+                        message="Function {0} cannot be applied to type {1}".format(function.name, type(context.mdata).__name__))
 
             input_args = []
             for arg in function.args:
@@ -591,10 +593,18 @@ def _run_commands(commands, context, allow_modifier=True):
                         raise JSTQLException("Function argument cannot be a modifier")
                 input_args.append(arg)
             data = function_class.run(context, *input_args)
+            if not function_class.is_modifier:
+                if ind != len(command.functions) - 1:
+                    raise JSTQLRuntimeException(current_state=context.mdata,
+                            message="Non modifier function {0} must be the last command".format(function.name))
+                else:
+                    return data
+
             if not context.parent:
                 context.mdata = data
             else:
                 context.parent.mdata[context.selector] = data
+
         return context.origin.mdata
     elif isinstance(command, ListConstruction):
         return [ _run_commands(statement.commands, context, allow_modifier=False) for statement in command.statements ]
