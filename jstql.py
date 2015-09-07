@@ -26,7 +26,7 @@ def recursive_copy(data):
         return [ recursive_copy(v) for v in data ]
     elif isinstance(data, tuple):
         return tuple([ recursive_copy(v) for v in data.items() ])
-    elif type(data) in [ int, float, complex, str ]:
+    elif data is None or type(data) in [ int, float, complex, str, bool ]:
         return data
     return data.copy()
 #################### Exception ####################
