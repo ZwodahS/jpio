@@ -517,12 +517,21 @@ def _run_commands(commands, context, allow_modifier=True):
             if not context.can_iterate():
                 raise JSTQLRuntimeException(context.data, message="Unable to iterate object of type {0}".format(type(context.data).__name))
             if type(commands[-1]) in [Assignment, FunctionChain]:
-                for i in range(0, len(context.data)):
-                    _run_commands(commands[index+1:], context.select(i), allow_modifier=allow_modifier)
-                return context.origin.mdata
+                if isinstance(context.data, list):
+                    for i in range(0, len(context.data)):
+                        _run_commands(commands[index+1:], context.select(i), allow_modifier=allow_modifier)
+                    return context.origin.mdata
+                else:
+                    for key, value in context.data.items():
+                        _run_commands(commands[index+1:], context.select(key), allow_modifier=allow_modifier)
+                    return context.origin.mdata
             else:
-                output = [ _run_commands(commands[index+1:], context.select(i)) for i in range(0, len(context.data)) ]
-                return output
+                if isinstance(context.data, list):
+                    output = [ _run_commands(commands[index+1:], context.select(i)) for i in range(0, len(context.data)) ]
+                    return output
+                else:
+                    output = { key: _run_commands(commands[index+1:], context.select(key)) for key in context.data.keys() }
+                    return output
         else:
             raise JSTQLException(message="Unable to run command of type {0}".format(type(command).__name__))
         index+=1
@@ -544,7 +553,7 @@ def _run_commands(commands, context, allow_modifier=True):
                 return context.data[command.value[0]:command.value[1]]
         elif isinstance(context.data, dict):
             if command.value == "*":
-                return context.data.values()
+                return context.data
             else:
                 raise JSTQLRuntimeException(context.data, message="Unable to iterate object of type {0}".format(type(context.data).__name))
         else:
