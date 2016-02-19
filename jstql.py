@@ -59,7 +59,8 @@ class JSTQLRuntimeException(JSTQLException):
 
     def __str__(self):
         line = []
-        line.append(" current state : {0}".format(self.current_state))
+        # disabled as this might sometime print the whole file
+        # line.append(" current state : {0}".format(self.current_state))
         line.append(" error : {0}".format(self.message))
         return "\n".join(line)
 

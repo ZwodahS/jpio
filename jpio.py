@@ -84,8 +84,11 @@ if __name__ == "__main__":
             f = open(infile)
             lines = f.readlines()
             f.close()
+        try:
+            d = json.loads("".join(lines))
+        except Exception:
+            raise jstql.JSTQLException(message="Error loading json file")
 
-        d = json.loads("".join(lines))
         result = jstql.run_query(d, jstql.parse(args[0] if len(args) == 1 else ""))
 
         if outfile:
