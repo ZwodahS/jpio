@@ -28,6 +28,7 @@ def print_help():
     print("    -s --splitlist       : split the list content each to their own line")
     print("    -p --pretty          : pretty print the json")
     print("    -h --help            : print this help")
+    print("    -i --interactive     : interactive mode")
     print("    --list-functions     : list the available functions")
 
 
@@ -52,9 +53,38 @@ def print_result(result, out, split=False, pretty=False):
         else:
             print(result, file=out)
 
+
+def start_interactive(data, splitfile, pretty):
+    while True:
+        try:
+            command = input("Enter query:")
+        except EOFError:
+            break
+
+        if command == "exit":
+            break
+
+        try:
+            print("Parsing")
+            commands = jstql.parse(command)
+        except JSTQLParserException as e:
+            print("Error parsing command")
+            continue
+
+        try:
+            print("Running")
+            result = jstql.run_query(data, commands)
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            import pdb; pdb.set_trace()
+            continue
+
+        print_result(result, sys.stdout, split=splitfile, pretty=pretty)
+
+
 if __name__ == "__main__":
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "f:o:hsp", ["infile=", "outfile", "help", "splitlist", "list-functions", "pretty"])
+        opts, args = getopt.getopt(sys.argv[1:], "f:o:hspi", ["infile=", "outfile", "help", "splitlist", "list-functions", "pretty", "interactive"])
         opts = { opt : arg for opt, arg in opts }
     except getopt.GetoptError as e:
         import traceback; traceback.print_exc()
@@ -72,6 +102,7 @@ if __name__ == "__main__":
     infile = opts.get("-f") or opts.get("--infile") or None
     outfile = opts.get("-o") or opts.get("--outfile") or None
     pretty = ("-p" in opts) or ("--pretty" in opts) or None
+    is_interactive = (("-i" in opts) or ("--interactive" in opts) or False) and (infile is not None)
     splitfile = False
 
     if "-s" in opts or "--splitlist" in opts:
@@ -84,18 +115,26 @@ if __name__ == "__main__":
             f = open(infile)
             lines = f.readlines()
             f.close()
+
         try:
+            if is_interactive:
+                print("Loading file ... ")
             d = json.loads("".join(lines))
         except Exception:
             raise jstql.JSTQLException(message="Error loading json file")
 
-        result = jstql.run_query(d, jstql.parse(args[0] if len(args) == 1 else ""))
+        if not is_interactive or not infile:
+            result = jstql.run_query(d, jstql.parse(args[0] if len(args) == 1 else ""))
 
-        if outfile:
-            with open(outfile, 'w') as f:
-                print_result(result, f, split=splitfile, pretty=pretty)
+            if outfile:
+                with open(outfile, 'w') as f:
+                    print_result(result, f, split=splitfile, pretty=pretty)
+            else:
+                print_result(result, sys.stdout, split=splitfile, pretty=pretty)
+
         else:
-            print_result(result, sys.stdout, split=splitfile, pretty=pretty)
+            start_interactive(d, splitfile, pretty)
+
         sys.exit(0)
     except jstql.JSTQLException as e:
         print(e, file=sys.stderr)
