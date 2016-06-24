@@ -16,8 +16,8 @@
 
 import sys
 import getopt
-import jstql
 import json
+from . import jstql
 
 def print_help():
     print("jpio [options] <query>")
@@ -82,7 +82,7 @@ def start_interactive(data, splitfile, pretty):
         print_result(result, sys.stdout, split=splitfile, pretty=pretty)
 
 
-if __name__ == "__main__":
+def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "f:o:hspi", ["infile=", "outfile", "help", "splitlist", "list-functions", "pretty", "interactive"])
         opts = { opt : arg for opt, arg in opts }
@@ -147,3 +147,7 @@ if __name__ == "__main__":
     except Exception as e:
         import traceback; traceback.print_exc()
         print("Unexpected error has occurs, please report this on github to make this software better", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
