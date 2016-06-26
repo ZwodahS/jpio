@@ -148,6 +148,3 @@ def main():
         import traceback; traceback.print_exc()
         print("Unexpected error has occurs, please report this on github to make this software better", file=sys.stderr)
 
-
-if __name__ == "__main__":
-    main()

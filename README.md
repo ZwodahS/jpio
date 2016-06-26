@@ -7,9 +7,7 @@
 # Installation
 ```
 pip3 install jpio
-alias jpio='python3 -m jpio'
 ```
-Note: The alias will be fix in the future
 
 # JPIO + JsTQL
 Json Python IO or JPIO is a simple Json reader/writer written in python that can be used in the command line.

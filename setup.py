@@ -1,14 +1,19 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
     name = "jpio",
-    packages = ["jpio"], # this must be the same as the name above
+    packages = find_packages(),
     version = "0.1.0",
     description = "Json Python I/O",
     author = "Eric Ng",
     author_email = "ericnjf@gmail.com",
-    url = "https://github.com/zwodahs/jpio", # use the URL to the github repo
-    keywords = ["json", "commandline"], # arbitrary keywords
+    url = "https://github.com/zwodahs/jpio",
+    keywords = ["json", "commandline"],
     classifiers = [],
+    entry_points = {
+        "console_scripts": [
+            "jpio=jpio.run_time:main",
+        ]
+    },
 )
 
