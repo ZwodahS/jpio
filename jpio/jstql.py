@@ -572,7 +572,7 @@ def _run_commands(commands, context, allow_modifier=True):
         return context.origin.mdata
 
     elif isinstance(command, FunctionChain):
-        import extensions # only import when we are running
+        from . import extensions # only import when we are running
         function_class = None
         for ind, function in enumerate(command.functions):
             if function.name not in extensions.registered_functions:

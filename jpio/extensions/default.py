@@ -32,7 +32,7 @@ For example, if you are implementing a new sort, don't override sort, instead ca
 A copy of the data will be passed to the function.
 """
 
-from jstql import JSTQLRuntimeException
+from jpio.jstql import JSTQLRuntimeException
 from operator import itemgetter, attrgetter
 
 def _sort_func(context, reverse=False, key=None, keyType=None):

@@ -6,7 +6,7 @@ modules = glob.glob(os.path.dirname(__file__)+"/*.py")
 __all__ = [ os.path.basename(f)[:-3] for f in modules ]
 __all__.remove("__init__")
 
-extensions = __import__("extensions", fromlist=__all__)
+extensions = __import__("jpio.extensions", fromlist=__all__)
 
 registered_functions = {}
 

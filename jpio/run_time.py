@@ -147,4 +147,5 @@ def main():
     except Exception as e:
         import traceback; traceback.print_exc()
         print("Unexpected error has occurs, please report this on github to make this software better", file=sys.stderr)
+        sys.exit(1)
 
